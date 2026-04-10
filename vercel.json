@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "name": "sigam-tools",
+  "routes": [
+    { "src": "/movimiento", "dest": "/movimiento/index.html" },
+    { "src": "/movimiento/(.*)", "dest": "/movimiento/index.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
