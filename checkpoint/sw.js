@@ -3,7 +3,7 @@
  * Scans captured offline are held in IndexedDB by the page and flushed
  * when the browser is online again.
  */
-const CACHE_NAME = 'sigam-checkpoint-v1';
+const CACHE_NAME = 'sigam-checkpoint-v2';
 const SHELL = [
   './',
   './index.html',

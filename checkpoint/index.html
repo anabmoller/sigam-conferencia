@@ -235,6 +235,38 @@
   .result-row { font-size: 13px; color: var(--text-2); margin-bottom: 2px; }
   .result-row b { color: var(--text); font-weight: 600; }
 
+  .od-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .od-col {
+    background: rgba(255,255,255,0.55);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+  }
+  .od-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+  .od-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .od-ruc { font-size: 11px; color: var(--text-2); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .od-meta {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .od-meta b { color: var(--text); font-weight: 600; }
+  @media (max-width: 380px) { .od-block { grid-template-columns: 1fr; } }
+
   .history-list { padding: 0; }
   .hist {
     padding: 12px 0;
@@ -536,57 +568,81 @@ async function lookupGuia(numero) {
 
 async function insertScanRemote(scan) {
   const url = REST + '/checkpoint_scans';
+  // return=minimal: anon has no SELECT policy on checkpoint_scans, so asking
+  // PostgREST to return the inserted row causes a misleading RLS error.
   const res = await fetch(url, {
     method: 'POST',
-    headers: supabaseHeaders({ 'Prefer': 'return=representation' }),
+    headers: supabaseHeaders({ 'Prefer': 'return=minimal' }),
     body: JSON.stringify(scan),
   });
-  if (!res.ok) throw new Error('insert_http_' + res.status);
-  const arr = await res.json();
-  return Array.isArray(arr) ? arr[0] : arr;
+  if (!res.ok) {
+    let body = '';
+    try { body = await res.text(); } catch (_) {}
+    throw new Error('insert_http_' + res.status + ' ' + body);
+  }
+  return true;
 }
 
 // ---------- QR parser ----------
-// Expected format (SENACSA):
-// 12/01/2026. Cota:00103267000041. Guia:91088907. PO:80050418. EO:0103780002.
-// CO:23° 19' 57.99728'' S 56° 42' 35.9967'' OPD:80023325. ED:0101010005.
-// CD:23° 27' 15.80246'' S 57° 26' 18.19977'' OF:Faena. A:Tor 42.
+// Expected format (SENACSA), labels always in this order:
+//   [fecha]. Cota:X. Guia:X. PO:X. EO:X. CO:<coord> PD:X. ED:X.
+//   CD:<coord> OF:X. A:X.
+//
+// Labels:
+//   PO = Propietario Origen   (RUC)
+//   EO = Establecimiento Origen (código)
+//   CO = Coordenada Origen      (termina con "O" de Oeste)
+//   PD = Propietario Destino  (RUC)    -- se guarda como opd_* en el DB
+//   ED = Establecimiento Destino (código)
+//   CD = Coordenada Destino
+//   OF = Operación Final
+//   A  = Animales
+//
+// Se hace un scan secuencial en orden conocido — más robusto que regex
+// porque el "O" final de las coordenadas no confunde al parser.
 function parseSenacsaQR(raw) {
   const text = (raw || '').trim();
   const out = { raw_qr_payload: raw };
 
-  // Leading date
+  // Leading date DD/MM/YYYY
   const dateMatch = text.match(/^(\d{2}\/\d{2}\/\d{4})/);
   if (dateMatch) {
     const [dd, mm, yyyy] = dateMatch[1].split('/');
     out.fecha_guia_qr = `${yyyy}-${mm}-${dd}`;
   }
 
-  const labels = ['Cota', 'Guia', 'PO', 'EO', 'CO', 'OPD', 'ED', 'CD', 'OF', 'A'];
-  // Match Label:value up to next label or end
-  const pattern = new RegExp(
-    '\\b(' + labels.join('|') + ')\\s*:\\s*(.+?)(?=\\s*\\b(?:' + labels.join('|') + ')\\s*:|$)',
-    'g'
-  );
-  let m;
+  const labels = ['Cota', 'Guia', 'PO', 'EO', 'CO', 'PD', 'ED', 'CD', 'OF', 'A'];
+
+  const positions = [];
+  let cursor = 0;
+  for (const label of labels) {
+    const idx = text.indexOf(label + ':', cursor);
+    if (idx >= 0) {
+      positions.push({ label, start: idx, valueStart: idx + label.length + 1 });
+      cursor = idx + label.length + 1;
+    }
+  }
+
   const fields = {};
-  while ((m = pattern.exec(text)) !== null) {
-    let val = m[2].trim();
-    // strip trailing period
+  for (let i = 0; i < positions.length; i++) {
+    const p = positions[i];
+    const end = (i + 1 < positions.length) ? positions[i + 1].start : text.length;
+    let val = text.substring(p.valueStart, end).trim();
     val = val.replace(/\.\s*$/, '').trim();
-    fields[m[1]] = val;
+    fields[p.label] = val;
   }
 
   if (fields.Cota) out.numero_cota = fields.Cota;
   if (fields.Guia) out.numero_guia = fields.Guia;
-  if (fields.PO) out.po_ruc = fields.PO;
-  if (fields.EO) out.eo_codigo = fields.EO;
-  if (fields.CO) out.co_texto = fields.CO;
-  if (fields.OPD) out.opd_ruc = fields.OPD;
-  if (fields.ED) out.ed_codigo = fields.ED;
-  if (fields.CD) out.cd_texto = fields.CD;
-  if (fields.OF) out.operacion_final = fields.OF;
-  if (fields.A) out.animales_texto = fields.A;
+  if (fields.PO)   out.po_ruc = fields.PO;
+  if (fields.EO)   out.eo_codigo = fields.EO;
+  if (fields.CO)   out.co_texto = fields.CO;
+  // PD en el QR → opd_* en el DB (consistencia con guias_senacsa)
+  if (fields.PD)   out.opd_ruc = fields.PD;
+  if (fields.ED)   out.ed_codigo = fields.ED;
+  if (fields.CD)   out.cd_texto = fields.CD;
+  if (fields.OF)   out.operacion_final = fields.OF;
+  if (fields.A)    out.animales_texto = fields.A;
 
   return out;
 }
@@ -705,18 +761,31 @@ async function handleScanPayload(raw, source) {
     histEntry.info = 'Offline';
   } else if (lookup) {
     const animales = lookup.animales_total != null ? lookup.animales_total : '—';
-    showResult('ok', 'Guía encontrada',
+    const fecha = lookup.fecha_guia || '—';
+    const op = lookup.operacion_final || '—';
+    showResult('ok', 'Guía encontrada en SIGAM',
       `<div class="result-guia">${escapeHtml(parsed.numero_guia)}</div>
-       <div class="result-row"><b>EO:</b> ${escapeHtml(lookup.eo_nombre || '—')}</div>
-       <div class="result-row"><b>ED:</b> ${escapeHtml(lookup.ed_nombre || '—')}</div>
-       <div class="result-row"><b>Operación:</b> ${escapeHtml(lookup.operacion_final || '—')} · <b>Animales:</b> ${animales}</div>`);
+       <div class="od-block">
+         <div class="od-col">
+           <div class="od-label">Origen · PO / EO</div>
+           <div class="od-name">${escapeHtml(lookup.eo_nombre || '—')}</div>
+           <div class="od-ruc">${escapeHtml(lookup.po_nombre || '—')}</div>
+           <div class="od-ruc">RUC: ${escapeHtml(lookup.po_ruc || '—')}</div>
+         </div>
+         <div class="od-col">
+           <div class="od-label">Destino · PD / ED</div>
+           <div class="od-name">${escapeHtml(lookup.ed_nombre || '—')}</div>
+           <div class="od-ruc">${escapeHtml(lookup.opd_nombre || '—')}</div>
+           <div class="od-ruc">RUC: ${escapeHtml(lookup.opd_ruc || '—')}</div>
+         </div>
+       </div>
+       <div class="od-meta">
+         <span><b>Fecha:</b> ${escapeHtml(fecha)}</span>
+         <span><b>Operación:</b> ${escapeHtml(op)}</span>
+         <span><b>Animales:</b> ${animales}</span>
+       </div>`);
     histEntry.status = 'matched';
     histEntry.info = (lookup.eo_nombre || '') + ' → ' + (lookup.ed_nombre || '');
-  } else if (inserted && inserted.match_status === 'matched') {
-    showResult('ok', 'Guía registrada',
-      `<div class="result-guia">${escapeHtml(parsed.numero_guia)}</div>
-       <div class="result-row">Coincidencia encontrada en SIGAM.</div>`);
-    histEntry.status = 'matched';
   } else {
     showResult('warn', 'Guía no encontrada en SIGAM',
       `<div class="result-guia">${escapeHtml(parsed.numero_guia)}</div>
