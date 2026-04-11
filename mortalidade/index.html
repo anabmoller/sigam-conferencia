@@ -239,16 +239,7 @@
 
   <div class="field">
     <label for="estab">Establecimiento *</label>
-    <select id="estab">
-      <option value="">Seleccionar...</option>
-      <option>Ypoti</option>
-      <option>Ypoti 2</option>
-      <option>Cerro Memby</option>
-      <option>Santa Clara</option>
-      <option>Lusipar</option>
-      <option>Santa Maria da Serra</option>
-      <option>Cielo Azul</option>
-    </select>
+    <select id="estab"><option value="">Cargando...</option></select>
   </div>
 
   <div class="row">
@@ -289,44 +280,33 @@
   <div class="id-panel" id="panel-rfid">
     <div class="field">
       <label for="caravana-rfid">EID (código RFID) *</label>
-      <div style="display:flex;gap:.5rem;align-items:flex-start;">
-        <input type="text" id="caravana-rfid" placeholder="Escanear o ingresar EID..." style="flex:1">
-        <button class="btn-gps" id="btn-rfid-scan" style="flex-shrink:0">📡 Escanear</button>
+      <div style="display:flex;gap:.5rem;">
+        <input type="text" id="caravana-rfid" placeholder="EID de 15 dígitos..." inputmode="numeric" style="flex:1;">
+        <button class="btn-gps" id="btn-rfid-scan" type="button">📺</button>
       </div>
-      <div id="rfid-status" style="margin-top:6px;font-size:12px;color:#8a95a3;"></div>
+      <div id="rfid-status" style="font-size:12px;color:#8a95a3;margin-top:4px;"></div>
     </div>
   </div>
 
-  <!-- Foto botón -->
+  <!-- FOTO BOTÓN -->
   <div class="id-panel" id="panel-foto">
     <div class="field">
-      <label>Foto del botón / caravana</label>
-      <div class="photo-slot-inner" id="slot-boton" style="max-width:180px;aspect-ratio:1;">
-        <div class="slot-icon">📷</div>
-        <div class="slot-text">Tocar para fotografiar</div>
-        <img id="preview-boton" src="" alt="">
-        <button class="remove-photo" id="rm-boton" type="button">✕</button>
-      </div>
-      <input class="photo-file-input" type="file" accept="image/*" capture="environment" id="file-boton">
-    </div>
-    <div class="field">
-      <label for="caravana-foto">N° leído en foto (opcional)</label>
-      <input type="text" id="caravana-foto" placeholder="Si puede leerlo..." inputmode="numeric">
+      <label for="caravana-foto">Número del botón (desdpvés=)</label>
+      <input type="text" id="caravana-foto" placeholder="Si logra leerlo...">
     </div>
   </div>
 
-  <!-- Sin ID -->
+  <!-- SIN ID -->
   <div class="id-panel" id="panel-sinid">
     <div class="field">
       <label for="sinid-desc">Descripción del animal *</label>
-      <input type="text" id="sinid-desc" placeholder="Ej: vaca blanca, pasto E3" autocomplete="off">
+      <input type="text" id="sinid-desc" placeholder="Ej: novillo negro, potrero E3...">
     </div>
   </div>
 
-  <!-- CATEGORIA -->
-  <div class="section-label">Categoría</div>
-
-  <div class="row">
+  <!-- CATEGORIA + SEXO -->
+  <div class="section-label">Categoría / sexo</div>
+    <div class="row">
     <div class="field">
       <label for="categoria">Categoría *</label>
       <select id="categoria">
@@ -354,30 +334,12 @@
   <div class="section-label">Causa de muerte</div>
 
   <div class="field">
-    <label for="causa">Causa *</label>
-    <select id="causa">
-      <option value="">Seleccionar...</option>
-
-      <optgroup label="Enfermedades infecciosas">
-        <option>Clostridiosis (carbunclo / edema maligno)</option>
-        <option>Enterotoxemia clostridial</option>
-        <option>Brucelosis</option>
-        <option>Leptospirosis</option>
-        <option>Rabia bovina (derriengue)</option>
-        <option>Fiebre aftosa</option>
-        <option>Septicemia / infección bacteriana</option>
-      </optgroup>
-
-      <optgroup label="Hemoparásitos">
-        <option>Babesiosis (tristeza bovina)</option>
-        <option>Anaplasmosis</option>
-        <option>Tripanosomiasis (mal de caderas)</option>
-        <option>Hemoparásito no identificado</option>
+    <select id="causa">�sito no identificado</option>
       </optgroup>
 
       <optgroup label="Enfermedades respiratorias">
         <option>Neumonía / bronconeumonía</option>
-        <option>IBR (rinotraqueítis infecciosa bovina)</option>
+        <option>IBR ptraqueítis infecciosa bovina)</option>
         <option>Pleuroneumonía</option>
       </optgroup>
 
@@ -486,14 +448,72 @@
 </div>
 
 <script>
-(function() {
+(inunction() {
   'use strict';
+
+  // ─── SUPABASE ──────────────────────────────────────────────────────────────────
+  var SUPABASE_URL = 'https://ebvethperccycxpaksrr.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_ppE6aC9Xy7XUoHxfjeG3iw_PpHnLjLW';
+  var REST    = SUPABASE_URL + '/rest/v1';
+  var STORAGE = SUPABASE_URL + '/storage/v1/object';
+  var BUCKET  = 'mortalidade-fotos';
+
+  function supaH(extra) {
+    var h = { 'apikey': SUPABASE_KEY, 'Authori   var h = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+    if (extra) Object.assign(h, extra);
+    return h;
+  }
+
+  // ─── IndexedDB queue ──────────────────────────────────────────────────
+  var _db = null;
+  function openDB() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise(function(res, rej) {
+      var req = indexedDB.open('sigam_mort', 1);
+      req.onupgradeneeded = function(e) {
+        var s = e.target.result.createObjectStore('queue', { keyPath: 'client_id' });
+        s.createIndex('status', 'status', { unique: false });
+      };
+      req.onsuccess = function(e) { _db = e.target.result; res(_db); };
+      req.onerror   = function(e) { rej(e.target.error); };
+    });
+  }
+  function idbPut(r)    { return openDB().then(function(db) { return new Promise(function(res,rej){ var tx=db.transaction('queue','readwrite'); tx.objectStore('queue').put(r); tx.oncomplete=function(){res(r);}; tx.onerror=function(e){rej(e.target.error);}; }); }); }
+  function idbDelete(id){ return openDB().then(function(db) { return new Promise(function(res,rej){ var tx=db.transaction('queue','readwrite'); tx.objectStore('queue').delete(id); tx.oncomplete=res; tx.onerror=function(e){rej(e.target.error);}; }); }); }
+  function idbAll()     { return openDB().then(function(db) { return new Promise(function(res,rej){ var req=db.transaction('queue','readonly').objectStore('queue').getAll(); req.onsuccess=function(){res(req.result||[]);}; req.onerror=function(e){rej(e.target.error);}; }); }); }
+
+  var _syncing = false;
+  var _queue   = [];
 
   // ─── DATE / TIME ──────────────────────────────────────────────────────
   function pad(n) { return String(n).padStart(2, '0'); }
   var now = new Date();
   document.getElementById('fecha').value = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
   document.getElementById('hora').value = pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+  // ─── LOAD ESTABLISHMENTS ──────────────────────────────────────────────
+  var _establishmentMap = {}; // name → uuid
+
+  fetch(REST + '/establishments?select=id,name&active=eq.true&order=name', { headers: supaH() })
+    .then(function(r) { return r.json(); })
+    .then(function(rows) {
+      var sel = document.getElementById('estab');
+      sel.innerHTML = '<option value="">Seleccionar...</option>';
+      rows.forEach(function(e) {
+        _establishmentMap[e.name] = e.id;
+        var opt = document.createElement('option');
+        opt.value = e.name;
+        opt.textContent = e.name;
+        sel.appendChild(opt);
+      });
+    })
+    .catch(function() {
+      // Fallback estático si no hay red
+      var sel = document.getElementById('estab');
+      sel.innerHTML = '<option value="">Seleccionar...</option>' +
+        ['Ypoti','Ypoti 2','Cerro Memby','Santa Clara','Lusipar','Santa Maria da Serra','Cielo Azul']
+        .map(function(n){ return '<option>'+n+'</option>'; }).join('');
+    });
 
   // ─── ID TABS ──────────────────────────────────────────────────────────
   var currentTab = 'manual';
@@ -508,16 +528,34 @@
     });
   });
 
-  // ─── ID PRELOAD (Supabase) ────────────────────────────────────────────
-  // Placeholder — will be wired to Supabase when connection details arrive.
-  // Animal records will have: { id_manejo, eid, categoria, estab, ... }
+  // ─── ID PRELOAD desde animales_individuales ───────────────────────────
   var animalCache = [];
 
-  function loadAnimals(estab) {
-    // TODO: fetch from Supabase filtered by estab
-    // fetch('/api/animals?estab=' + encodeURIComponent(estab))
-    //   .then(r => r.json()).then(function(d) { animalCache = d; });
-    animalCache = []; // empty until connected
+  function loadAnimals(estabName) {
+    animalCache = [];
+    if (!estabName) return;
+    var estabId = _establishmentMap[estabName];
+    var url;
+    if (estabId) {
+      url = REST + '/animales_individuales?select=ide,ide_visual,categoria_id,estado,potrero_actual&establishment_id=eq.' + encodeURIComponent(estabId) + '&estado=not.in.(muerto,vendido)&limit=2000';
+    } else {
+      // fallback: no tenemos el UUID, saltar
+      return;
+    }
+    fetch(url, { headers: supaH() })
+      .then(function(r) { return r.json(); })
+      .then(function(rows) {
+        animalCache = rows.map(function(a) {
+          return {
+            id_manejo: a.ide_visual || '',
+            eid:       a.ide || '',
+            categoria: a.categoria_id || '',
+            potrero:   a.potrero_actual || '',
+            _raw:      a
+          };
+        });
+      })
+      .catch(function(err) { console.warn('loadAnimals:', err); });
   }
 
   document.getElementById('estab').addEventListener('change', function() {
@@ -525,10 +563,10 @@
   });
 
   // Search / autocomplete
-  var numInput = document.getElementById('num-manejo');
-  var clearBtn = document.getElementById('num-manejo-clear');
-  var suggestBox = document.getElementById('id-suggestions');
-  var selectedInfo = document.getElementById('id-selected-info');
+  var numInput    = document.getElementById('num-manejo');
+  var clearBtn    = document.getElementById('num-manejo-clear');
+  var suggestBox  = document.getElementById('id-suggestions');
+  var selectedInfo   = document.getElementById('id-selected-info');
   var selectedAnimal = null;
 
   numInput.addEventListener('input', function() {
@@ -538,13 +576,13 @@
     selectedInfo.style.display = 'none';
     if (!q || animalCache.length === 0) { suggestBox.classList.remove('open'); return; }
     var matches = animalCache.filter(function(a) {
-      return String(a.id_manejo).includes(q) || String(a.eid || '').includes(q);
+      return String(a.id_manejo).includes(q) || String(a.eid).includes(q);
     }).slice(0, 8);
     if (matches.length === 0) { suggestBox.classList.remove('open'); return; }
     suggestBox.innerHTML = matches.map(function(a) {
       return '<div class="id-suggestion-item" data-id="' + a.id_manejo + '">' +
         '<span class="id-num">' + a.id_manejo + '</span>' +
-        '<span class="id-meta">' + (a.categoria || '') + ' · ' + (a.eid || '') + '</span>' +
+        '<span class="id-meta">' + (a.categoria || '') + (a.eid ? ' · ' + a.eid : '') + '</span>' +
         '</div>';
     }).join('');
     suggestBox.classList.add('open');
@@ -561,6 +599,11 @@
     if (selectedAnimal) {
       selectedInfo.textContent = '✓ ' + (selectedAnimal.categoria || '') + (selectedAnimal.eid ? ' · EID ' + selectedAnimal.eid : '');
       selectedInfo.style.display = 'block';
+      // Auto-fill potrero if available
+      if (selectedAnimal.potrero) {
+        var potr = document.getElementById('potrero');
+        if (potr && !potr.value) potr.value = selectedAnimal.potrero;
+      }
     }
   });
 
@@ -596,7 +639,7 @@
   });
 
   // ─── GPS ──────────────────────────────────────────────────────────────
-  var btnGps = document.getElementById('btn-gps');
+  var btnGps   = document.getElementById('btn-gps');
   var gpsStatus = document.getElementById('gps-status');
 
   btnGps.addEventListener('click', function() {
@@ -617,12 +660,8 @@
       function(err) {
         btnGps.disabled = false;
         btnGps.textContent = '📍 Capturar';
-        var msgs = {
-          1: 'Permiso de ubicación denegado. Habilítelo en Configuración.',
-          2: 'No se pudo obtener la posición. Verifique señal GPS.',
-          3: 'Tiempo de espera agotado. Intente nuevamente.'
-        };
-        showGps('error', msgs[err.code] || 'Error al obtener ibicación.');
+        var msgs = { 1: 'Permiso denegado. Habilítelo en Configuración.', 2: 'No se pudo obtener posición.', 3: 'Tiempo de espera agotado.' };
+        showGps('error', msgs[err.code] || 'Error al obtener ubicación.');
       },
       { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 }
     );
@@ -635,21 +674,17 @@
   }
 
   // ─── FOTOS (fix iOS camera) ───────────────────────────────────────────
-  // Use explicit fileInput.click() from touch/click on slot div.
-  // File input is display:none — this is the most reliable pattern on iOS Safari.
-  function setupPhotoSlot(slotId, fileId, previewId, rmId) {
-    var slot     = document.getElementById(slotId);
-    var fileInput = document.getElementById(fileId);
-    var preview  = document.getElementById(previewId);
-    var rmBtn    = document.getElementById(rmId);
+  var _photos = []; // { blob, name }
 
-    // Click slot → open camera/gallery
+  function setupPhotoSlot(slotId, fileId, previewId, rmId) {
+    var slot      = document.getElementById(slotId);
+    var fileInput = document.getElementById(fileId);
+    var preview   = document.getElementById(previewId);
+    var rmBtn     = document.getElementById(rmId);
     slot.addEventListener('click', function(e) {
       if (e.target === rmBtn || rmBtn.contains(e.target)) return;
       fileInput.click();
     });
-
-    // Preview on file selected
     fileInput.addEventListener('change', function() {
       var file = this.files && this.files[0];
       if (!file) return;
@@ -659,14 +694,14 @@
         slot.classList.add('has-photo');
       };
       reader.readAsDataURL(file);
+      _photos.push({ blob: file, name: file.name, slotId: slotId });
     });
-
-    // Remove photo
     rmBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       preview.src = '';
       fileInput.value = '';
       slot.classList.remove('has-photo');
+      _photos = _photos.filter(function(p) { return p.slotId !== slotId; });
     });
   }
 
@@ -683,8 +718,8 @@
     formStatus.className = 'status-msg';
     var errors = [];
 
-    if (!document.getElementById('estab').value)    errors.push('Seleccione un establecimiento.');
-    if (!document.getElementById('fecha').value)    errors.push('Ingrese la fecha.');
+    if (!document.getElementById('estab').value)   errors.push('Seleccione un establecimiento.');
+    if (!document.getElementById('fecha').value)   errors.push('Ingrese la fecha.');
 
     if (currentTab === 'manual') {
       if (!document.getElementById('num-manejo').value.trim()) errors.push('Ingrese el número de manejo.');
@@ -711,69 +746,181 @@
 
     // Gather ID value
     var idValue = '';
-    if (currentTab === 'manual')   idValue = document.getElementById('num-manejo').value.trim();
-    else if (currentTab === 'rfid')   idValue = document.getElementById('caravana-rfid').value.trim();
-    else if (currentTab === 'foto')   idValue = document.getElementById('caravana-foto').value.trim() || '(foto)';
-    else if (currentTab === 'sinid')  idValue = document.getElementById('sinid-desc').value.trim();
+    if (currentTab === 'manual')  idValue = document.getElementById('num-manejo').value.trim();
+    else if (currentTab === 'rfid')  idValue = document.getElementById('caravana-rfid').value.trim();
+    else if (currentTab === 'foto')  idValue = document.getElementById('caravana-foto').value.trim() || '(foto)';
+    else if (currentTab === 'sinid') idValue = document.getElementById('sinid-desc').value.trim();
+
+    var estabName = document.getElementById('estab').value;
+    var estabId   = _establishmentMap[estabName] || null;
+
+    var causaVal   = causa === 'Otra (especificar)' ? document.getElementById('causa-otra').value.trim() : causa;
+    var causaDet   = causa === 'Otra (especificar)' ? document.getElementById('causa-otra').value.trim() : null;
+
+    var clientId = 'MORT-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+    var photos   = _photos.slice(); // snapshot
 
     var record = {
-      estab:     document.getElementById('estab').value,
-      fecha:     document.getElementById('fecha').value,
-      hora:      document.getElementById('hora').value,
-      idMode:    currentTab,
-      id:        idValue,
-      animalRef: selectedAnimal || null,
-      categoria: document.getElementById('categoria').value,
-      sexo:      document.getElementById('sexo').value,
-      causa:     causa === 'Otra (especificar)' ? document.getElementById('causa-otra').value.trim() : causa,
-      potrero:   document.getElementById('potrero').value.trim(),
-      lat:       document.getElementById('gps-lat').value,
-      lon:       document.getElementById('gps-lon').value,
-      obs:       document.getElementById('obs').value.trim(),
-      ts:        new Date().toISOString()
+      client_id:         clientId,
+      animal_id_visible: idValue || null,
+      id_mode:           currentTab,
+      establecimiento:   estabName,
+      establishment_id:  estabId,
+      fecha:             document.getElementById('fecha').value,
+      hora:              document.getElementById('hora').value,
+      gps_lat:           parseFloat(document.getElementById('gps-lat').value) || null,
+      gps_lon:           parseFloat(document.getElementById('gps-lon').value) || null,
+      setor:             document.getElementById('potrero').value.trim() || null,
+      causa:             causaVal,
+      causa_detalle:     causaDet,
+      observaciones:     document.getElementById('obs').value.trim() || null,
+      photos_count:      photos.length,
+      raw_payload:       { id_mode: currentTab, animal_ref: selectedAnimal || null },
+      user_agent:        navigator.userAgent,
+      _photos:           photos,
+      status:            'pending',
+      created_at:        new Date().toISOString()
     };
 
-    // Save locally
-    try {
-      var q = JSON.parse(localStorage.getItem('mort_queue') || '[]');
-      q.push(record);
-      localStorage.setItem('mort_queue', JSON.stringify(q));
-    } catch(e) {}
-
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<span class="spinner"></span>Registrando...';
+    btnSubmit.innerHTML = '<span class="spinner"></span>Guardando...';
 
-    setTimeout(function() {
-      btnSubmit.disabled = false;
-      btnSubmit.textContent = 'Registrar mortalidad';
+    idbPut(record).then(function() {
+      _queue.unshift(record);
       formStatus.className = 'status-msg success';
-      formStatus.textContent = '✓ Registro guardado. (' + record.estab + ' — ' + record.fecha + ')';
+      formStatus.textContent = '✓ Registro guardado' + (navigator.onLine ? ' — sincronizando...' : ' (sin conexión, se enviará al reconectarse)');
       formStatus.style.display = 'block';
       formStatus.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Registrar mortalidad';
+      resetForm();
+      if (navigator.onLine) trySyncQueue();
+    }).catch(function(err) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Registrar mortalidad';
+      formStatus.className = 'status-msg error';
+      formStatus.textContent = 'Error al guardar: ' + (err.message || err);
+      formStatus.style.display = 'block';
+    });
+  });
 
-      // Clear (keep estab + fecha)
-      var savedEstab = document.getElementById('estab').value;
-      ['num-manejo','caravana-rfid','caravana-foto','sinid-desc','categoria','sexo','causa','causa-otra','potrero','obs'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.value = '';
+  function resetForm() {
+    var savedEstab = document.getElementById('estab').value;
+    ['num-manejo','caravana-rfid','caravana-foto','sinid-desc','categoria','sexo','causa','causa-otra','potrero','obs'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('causa-otra-wrap').classList.remove('visible');
+    document.getElementById('gps-lat').value = '';
+    document.getElementById('gps-lon').value = '';
+    document.getElementById('gps-status').style.display = 'none';
+    clearBtn.style.display = 'none';
+    selectedInfo.style.display = 'none';
+    selectedAnimal = null;
+    _photos = [];
+    ['caravana','animal','boton'].forEach(function(k) {
+      var p = document.getElementById('preview-'+k);
+      var s = document.getElementById('slot-'+k);
+      var f = document.getElementById('file-'+k);
+      if (p) p.src = '';
+      if (s) s.classList.remove('has-photo');
+      if (f) f.value = '';
+    });
+    document.getElementById('estab').value = savedEstab;
+    var nowR = new Date();
+    document.getElementById('fecha').value = nowR.getFullYear() + '-' + pad(nowR.getMonth()+1) + '-' + pad(nowR.getDate());
+    document.getElementById('hora').value = pad(nowR.getHours()) + ':' + pad(nowR.getMinutes());
+  }
+
+  // ─── SYNC to mortalidades_campo ───────────────────────────────────────
+  function trySyncQueue(onlyId) {
+    if (!navigator.onLine || _syncing) return;
+    idbAll().then(function(rows) {
+      var pending = rows.filter(function(r) {
+        if (r.status === 'synced') return false;
+        if (onlyId) return r.client_id === onlyId;
+        return true;
       });
-      document.getElementById('causa-otra-wrap').classList.remove('visible');
-      document.getElementById('gps-lat').value = '';
-      document.getElementById('gps-lon').value = '';
-      document.getElementById('gps-status').style.display = 'none';
-      clearBtn.style.display = 'none';
-      selectedInfo.style.display = 'none';
-      selectedAnimal = null;
-      ['caravana','animal','boton'].forEach(function(k) {
-        var p = document.getElementById('preview-'+k);
-        var s = document.getElementById('slot-'+k);
-        var f = document.getElementById('file-'+k);
-        if (p) p.src = '';
-        if (s) s.classList.remove('has-photo');
-        if (f) f.value = '';
-      });
-      document.getElementById('estab').value = savedEstab;
-    }, 900);
+      if (!pending.length) return;
+      _syncing = true;
+
+      (async function() {
+        for (var i = 0; i < pending.length; i++) {
+          var r = pending[i];
+          try {
+            // 1. Upload photos
+            var photoUrls = [];
+            var photos = r._photos || [];
+            for (var j = 0; j < photos.length; j++) {
+              var p = photos[j];
+              var ext = (p.name && p.name.split('.').pop().toLowerCase()) || 'jpg';
+              if (!['jpg','jpeg','png','webp','heic'].includes(ext)) ext = 'jpg';
+              var path = r.client_id + '/' + (j+1) + '.' + ext;
+              var up = await fetch(STORAGE + '/' + BUCKET + '/' + path, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'x-upsert': 'true', 'Content-Type': p.blob.type || 'image/jpeg' },
+                body: p.blob
+              });
+              if (!up.ok) throw new Error('foto_' + up.status);
+              photoUrls.push(SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + path);
+            }
+
+            // 2. Insert into mortalidades_campo
+            var payload = {
+              client_id:         r.client_id,
+              animal_id_visible: r.animal_id_visible,
+              id_mode:           r.id_mode,
+              establecimiento:   r.establecimiento,
+              establishment_id:  r.establishment_id,
+              notificado_por:    r.notificado_por || null,
+              fecha:             r.fecha,
+              hora:              r.hora || null,
+              gps_lat:           r.gps_lat,
+              gps_lon:           r.gps_lon,
+              gps_accuracy:      r.gps_accuracy || null,
+              setor:             r.setor,
+              causa:             r.causa,
+              causa_detalle:     r.causa_detalle,
+              observaciones:     r.observaciones,
+              photo_urls:        photoUrls,
+              photos_count:      photoUrls.length,
+              raw_payload:       r.raw_payload || {},
+              user_agent:        r.user_agent,
+              estado:            'pendiente'
+            };
+            var res = await fetch(REST + '/mortalidades_campo', {
+              method: 'POST',
+              headers: supaH({ 'Prefer': 'return=minimal,resolution=ignore-duplicates' }),
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok && res.status !== 409) {
+              var body = await res.text().catch(function(){return '';});
+              throw new Error('insert_' + res.status + ' ' + body.slice(0,120));
+            }
+
+            r.status = 'synced';
+            r._photos = [];
+            await idbPut(r);
+          } catch(err) {
+            console.warn('sync error', r.client_id, err);
+            r.status = 'error';
+            r.error  = String(err.message || err).slice(0,200);
+            await idbPut(r);
+          }
+        }
+        _syncing = false;
+        var ok  = pending.filter(function(r){ return r.status === 'synced'; }).length;
+        if (ok) console.log(ok + ' registro(s) sincronizado(s) con Supabase');
+      })();
+    });
+  }
+
+  window.addEventListener('online', function() { trySyncQueue(); });
+
+  // ─── Init queue ───────────────────────────────────────────────────────
+  idbAll().then(function(rows) {
+    _queue = rows;
+    if (navigator.onLine) trySyncQueue();
   });
 
 })();
