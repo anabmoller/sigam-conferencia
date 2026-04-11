@@ -182,10 +182,14 @@
     border-radius: var(--radius);
     overflow: hidden;
     background: #000;
-    aspect-ratio: 4 / 3;
+    min-height: 260px;
     margin-bottom: 1rem;
   }
-  #reader video { width: 100% !important; height: 100% !important; object-fit: cover; }
+  /* Don't override video sizing — html5-qrcode uses the native video frame
+     as its scan canvas, and forcing object-fit: cover makes the qrbox
+     region misalign with what the user sees. */
+  #reader video { max-width: 100%; display: block; }
+  #reader img { max-width: 100%; }
   #reader__dashboard_section_csr button,
   #reader__dashboard_section_swaplink,
   #reader__filescan_input,
@@ -741,17 +745,60 @@ function manualSubmit() {
 // ---------- Camera control ----------
 async function startCamera() {
   if (html5Qr) return;
+
+  // qrbox sized relative to the viewfinder (works on any phone)
+  const qrboxFn = (viewfinderWidth, viewfinderHeight) => {
+    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+    const edge = Math.max(200, Math.floor(minEdge * 0.78));
+    return { width: edge, height: edge };
+  };
+
+  // Constructor config: format restriction + native BarcodeDetector hint.
+  // The native BarcodeDetector (iOS 17+ Safari, Chrome on Android) handles
+  // dense QRs far better than the JS fallback.
+  const constructorConfig = {
+    verbose: false,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+  };
+
+  const startConfig = {
+    fps: 15,
+    qrbox: qrboxFn,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+  };
+
+  // SENACSA QRs are dense, so we ask for a high-res back camera stream.
+  const cameraConfig = {
+    facingMode: { ideal: 'environment' },
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+  };
+
   try {
-    html5Qr = new Html5Qrcode('reader');
-    const config = { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1.333 };
+    html5Qr = new Html5Qrcode('reader', constructorConfig);
     await html5Qr.start(
-      { facingMode: 'environment' },
-      config,
+      cameraConfig,
+      startConfig,
       (decodedText) => handleScanPayload(decodedText, 'camera'),
       () => { /* scan error ignored */ }
     );
   } catch (e) {
-    showResult('bad', 'Error de cámara', `<div class="result-row">${escapeHtml(e.message || String(e))}</div>`);
+    // Fallback: try again with simpler constraints (some older iOS/Android
+    // cameras reject the ideal width/height request).
+    try {
+      if (html5Qr) { try { await html5Qr.stop(); } catch (_) {} html5Qr = null; }
+      html5Qr = new Html5Qrcode('reader', constructorConfig);
+      await html5Qr.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: qrboxFn, experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
+        (decodedText) => handleScanPayload(decodedText, 'camera'),
+        () => {}
+      );
+    } catch (e2) {
+      showResult('bad', 'Error de cámara',
+        `<div class="result-row">${escapeHtml((e2 && e2.message) || String(e2))}</div>
+         <div class="result-row" style="margin-top:6px">Probá el modo <b>Manual</b>.</div>`);
+    }
   }
 }
 
