@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const PIN_RE = /^\d{4}$/;
+const PIN_RE = /^\d{6}$/;
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -45,17 +45,18 @@ Deno.serve(async (req) => {
 
   const { pin_actual, pin_nuevo } = body;
   if (typeof pin_actual !== 'string' || !PIN_RE.test(pin_actual)) {
-    return json({ error: 'pin_actual inválido (debe ser 4 dígitos)' }, 400);
+    return json({ error: 'pin_actual inválido (debe ser 6 dígitos)' }, 400);
   }
   if (typeof pin_nuevo !== 'string' || !PIN_RE.test(pin_nuevo)) {
-    return json({ error: 'pin_nuevo inválido (debe ser 4 dígitos)' }, 400);
+    return json({ error: 'pin_nuevo inválido (debe ser 6 dígitos)' }, 400);
   }
   if (pin_actual === pin_nuevo) {
     return json({ error: 'pin_nuevo no puede ser igual a pin_actual' }, 400);
   }
 
-  // Re-autenticar usando un anon client fresco para validar pin_actual.
-  const verifyClient = createClient(url, anonKey);
+  const verifyClient = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
   const { error: signInErr } = await verifyClient.auth.signInWithPassword({
     email,
     password: pin_actual,

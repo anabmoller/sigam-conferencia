@@ -24,8 +24,8 @@ export default function LoginPage() {
       setError('Ingresá tu usuario.');
       return;
     }
-    if (!/^\d{4}$/.test(pin)) {
-      setError('El PIN debe ser de 4 dígitos.');
+    if (!/^\d{6}$/.test(pin)) {
+      setError('El PIN debe ser de 6 dígitos.');
       return;
     }
     setSubmitting(true);
@@ -81,13 +81,13 @@ export default function LoginPage() {
                 name="pin"
                 inputMode="numeric"
                 autoComplete="current-password"
-                pattern="\d{4}"
-                maxLength={4}
+                pattern="\d{6}"
+                maxLength={6}
                 required
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                className="w-full rounded-lg border border-sigam-border bg-white px-3 py-2 text-xl font-mono tracking-[0.5em] text-center text-sigam-text focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
-                placeholder="••••"
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full rounded-lg border border-sigam-border bg-white px-3 py-2 text-xl font-mono tracking-[0.4em] text-center text-sigam-text focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
+                placeholder="••••••"
               />
             </label>
 

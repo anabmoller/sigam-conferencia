@@ -11,6 +11,18 @@ const ROLES = [
   { value: 'admin', label: 'Admin' },
 ];
 
+const PIN_INICIAL = '123456';
+
+async function extractFunctionError(err, fallback) {
+  try {
+    const body = await err?.context?.json?.();
+    if (body?.error) return body.error;
+  } catch {
+    // body may not be JSON or may have been consumed — fall through
+  }
+  return err?.message ?? fallback;
+}
+
 export default function AdminUsuariosPage() {
   const [operadores, setOperadores] = useState(null);
   const [establecimientos, setEstablecimientos] = useState([]);
@@ -36,16 +48,20 @@ export default function AdminUsuariosPage() {
   }, []);
 
   const onResetPin = async (op) => {
-    if (!window.confirm(`¿Resetear el PIN de ${op.username} a 1234?`)) return;
+    if (!window.confirm(`¿Resetear el PIN de ${op.username} a ${PIN_INICIAL}?`)) return;
     const { data, error } = await supabase.functions.invoke('resetear-pin', {
       body: { target_user_id: op.id },
     });
-    if (error || data?.error) {
-      window.alert(`Error: ${error?.message ?? data?.error}`);
+    if (error) {
+      window.alert(`Error: ${await extractFunctionError(error, 'falló el reset.')}`);
+      return;
+    }
+    if (data?.error) {
+      window.alert(`Error: ${data.error}`);
       return;
     }
     window.alert(
-      `PIN de ${op.username} reseteado a 1234. Deberá cambiarlo en su próximo ingreso.`
+      `PIN de ${op.username} reseteado a ${PIN_INICIAL}. Deberá cambiarlo en su próximo ingreso.`
     );
     load();
   };
@@ -160,10 +176,11 @@ export default function AdminUsuariosPage() {
                 <dt className="text-sigam-muted">Usuario:</dt>
                 <dd className="font-mono font-semibold">{createdInfo.username}</dd>
                 <dt className="text-sigam-muted">PIN inicial:</dt>
-                <dd className="font-mono font-semibold">1234</dd>
+                <dd className="font-mono font-semibold">{PIN_INICIAL}</dd>
               </dl>
               <p className="text-xs text-sigam-muted">
-                Al ingresar por primera vez deberá cambiar el PIN 1234 por uno propio.
+                Al ingresar por primera vez deberá cambiar el PIN {PIN_INICIAL} por uno propio de 6
+                dígitos.
               </p>
               <Button onClick={() => setCreatedInfo(null)} className="w-full">
                 OK
@@ -204,7 +221,7 @@ function CrearOperadorModal({ establecimientos, onClose, onSuccess }) {
     });
     setSubmitting(false);
     if (err) {
-      setError(err.message ?? 'Error al crear operador.');
+      setError(await extractFunctionError(err, 'Error al crear operador.'));
       return;
     }
     if (data?.error) {
@@ -275,8 +292,8 @@ function CrearOperadorModal({ establecimientos, onClose, onSuccess }) {
               </div>
             </div>
             <p className="text-xs text-sigam-muted">
-              El PIN inicial será <span className="font-mono">1234</span>. El operador deberá
-              cambiarlo en su primer acceso.
+              El PIN inicial será <span className="font-mono">{PIN_INICIAL}</span>. El operador
+              deberá cambiarlo en su primer acceso.
             </p>
             {error && <p className="text-sm text-burgundy">{error}</p>}
             <div className="flex gap-2 justify-end pt-2">

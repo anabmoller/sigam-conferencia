@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const PIN_INICIAL = '1234';
+const PIN_INICIAL = '123456';
 const USERNAME_RE = /^[a-z0-9_.-]{3,32}$/;
 const VALID_ROLES = new Set(['admin', 'trazabilidad', 'capataz']);
 
