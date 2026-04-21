@@ -1,3 +1,11 @@
-.DS_Store
-.vercel
 node_modules
+dist
+dist-ssr
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.vite
+.vercel
+coverage

@@ -1,129 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-<meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230A1628'/%3E%3Ctext x='16' y='22' font-family='Arial,Helvetica,sans-serif' font-size='14' font-weight='700' fill='%23F5B301' text-anchor='middle'%3EAM%3C/text%3E%3C/svg%3E">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIGAM Tools</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&display=swap');
-  :root{--navy:#0A1628;--mustard:#F5B301;--burgundy:#7B1E2E;--surface:#f5f4f1;--border:rgba(10,22,40,0.12)}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Outfit',sans-serif;background:var(--surface);color:var(--navy);min-height:100vh}
-  .topbar{background:var(--navy);height:52px;display:flex;align-items:center;padding:0 2rem;gap:12px}
-  .logo-mark{width:30px;height:30px;border:1.5px solid var(--mustard);border-radius:6px;display:flex;align-items:center;justify-content:center}
-  .app-name{font-family:'DM Serif Display',serif;color:#fff;font-size:17px}
-  .app-name span{color:var(--mustard)}
-  .badge{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:rgba(245,179,1,.15);color:var(--mustard);padding:3px 10px;border-radius:20px;border:1px solid rgba(245,179,1,.3)}
-  .hero{padding:3rem 2rem 2rem;max-width:800px;margin:0 auto}
-  h1{font-family:'DM Serif Display',serif;font-size:32px;margin-bottom:.5rem}
-  .sub{font-size:15px;color:#6b7a8d;margin-bottom:2.5rem}
-  .section-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#8a95a3;margin-bottom:1rem}
-  .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:2rem}
-  .tool-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1.25rem;text-decoration:none;color:inherit;display:block;transition:border-color .15s,box-shadow .15s}
-  .tool-card:hover{border-color:rgba(10,22,40,.3);box-shadow:0 2px 8px rgba(10,22,40,.06)}
-  .tool-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
-  .tool-icon.open{background:#e6f4ec}
-  .tool-icon.auth{background:#fef3d0}
-  .tool-icon.soon{background:#f5f4f1}
-  .tool-name{font-size:14px;font-weight:600;margin-bottom:4px}
-  .tool-desc{font-size:12px;color:#6b7a8d;line-height:1.5}
-  .pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:10px;letter-spacing:.04em}
-  .pill-open{background:#e6f4ec;color:#1a6b3c}
-  .pill-auth{background:#fef3d0;color:#7a4a00}
-  .pill-soon{background:#f1efe8;color:#8a95a3}
-  .footer{text-align:center;padding:2rem;font-size:11px;color:#aaa}
-</style>
-</head>
-<body>
-<div class="topbar">
-  <div class="logo-mark">
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-      <text x="11" y="16" font-family="Arial,Helvetica,sans-serif" font-size="11" font-weight="700" fill="#F5B301" text-anchor="middle">AM</text>
-    </svg>
-  </div>
-  <span class="app-name">SIG<span>AM</span></span>
-  <span class="badge">Tools</span>
-</div>
-
-<div class="hero">
-  <h1>Herramientas de campo</h1>
-  <p class="sub">Utilidades operativas para trazabilidad y gestión ganadera. Algunas abiertas, otras requieren acceso SIGAM.</p>
-
-  <div class="section-label">Acceso libre</div>
-  <div class="tools-grid">
-    <a href="/movimiento" class="tool-card">
-      <div class="tool-icon open">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M3 9h12M10 5l5 4-5 4" stroke="#1a6b3c" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="tool-name">Conferencia de movimiento</div>
-      <div class="tool-desc">Compara listas EO/ED de un movimiento interno y detecta faltantes y excedentes.</div>
-      <span class="pill pill-open">Abierto</span>
-    </a>
-    <a href="/mortalidade" class="tool-card">
-      <div class="tool-icon open">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M9 3a5 5 0 0 1 5 5c0 2.5-1.5 4-3 5H7c-1.5-1-3-2.5-3-5a5 5 0 0 1 5-5z" stroke="#1a6b3c" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M7 13v2h4v-2" stroke="#1a6b3c" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="tool-name">Mortalidade</div>
-      <div class="tool-desc">Registro de mortalidade por establecimiento. Carga individual o por lotes.</div>
-      <span class="pill pill-open">Abierto</span>
-    </a>
-    <a href="/checkpoint" class="tool-card">
-      <div class="tool-icon open">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <rect x="3" y="3" width="5" height="5" rx="1" stroke="#1a6b3c" stroke-width="1.4"/>
-          <rect x="10" y="3" width="5" height="5" rx="1" stroke="#1a6b3c" stroke-width="1.4"/>
-          <rect x="3" y="10" width="5" height="5" rx="1" stroke="#1a6b3c" stroke-width="1.4"/>
-          <path d="M10 10h2v2h-2zM13 13h2v2h-2z" stroke="#1a6b3c" stroke-width="1.4" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="tool-name">Checkpoint scanner</div>
-      <div class="tool-desc">Lee QR de guías SENACSA en puestos de control. Funciona offline y sin login.</div>
-      <span class="pill pill-open">Abierto</span>
-    </a>
-  </div>
-
-  <div class="section-label">Requiere acceso SIGAM</div>
-  <div class="tools-grid">
-    <div class="tool-card" style="opacity:.6;cursor:default">
-      <div class="tool-icon auth">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <rect x="4" y="8" width="10" height="7" rx="1.5" stroke="#7a4a00" stroke-width="1.3"/>
-          <path d="M6 8V6a3 3 0 0 1 6 0v2" stroke="#7a4a00" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="tool-name">Hato — Ficha animal</div>
-      <div class="tool-desc">Consulta y edición de fichas individuales con historial de eventos y trazabilidad SIAP.</div>
-      <span class="pill pill-auth">Login SIGAM</span>
-    </div>
-    <div class="tool-card" style="opacity:.6;cursor:default">
-      <div class="tool-icon auth">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M3 5h12M3 9h8M3 13h5" stroke="#7a4a00" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="tool-name">Guías y cotas</div>
-      <div class="tool-desc">Registro y seguimiento de guías SENACSA por establecimiento y período.</div>
-      <span class="pill pill-auth">Login SIGAM</span>
-    </div>
-    <div class="tool-card" style="opacity:.45;cursor:default">
-      <div class="tool-icon soon">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <circle cx="9" cy="9" r="6" stroke="#8a95a3" stroke-width="1.3"/>
-          <path d="M9 6v3l2 2" stroke="#8a95a3" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="tool-name">Em breve</div>
-      <div class="tool-desc">Nuevas herramientas operativas en desarrollo.</div>
-      <span class="pill pill-soon">Próximamente</span>
-    </div>
-  </div>
-</div>
-<div class="footer">SIGAM Tools</div>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0A1628" />
+    <title>SIGAM Trazabilidad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
