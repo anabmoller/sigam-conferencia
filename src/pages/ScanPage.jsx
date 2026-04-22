@@ -228,7 +228,7 @@ export default function ScanPage() {
               <div>
                 <p className="text-xs uppercase tracking-wide text-sigam-muted mb-1">Destino</p>
                 <p className="font-mono">ED {summary.destino.establecimiento_codigo ?? '—'}</p>
-                <p className="font-mono text-sm">OPD {summary.destino.proprietario_codigo ?? '—'}</p>
+                <p className="font-mono text-sm">PD {summary.destino.proprietario_codigo ?? '—'}</p>
                 <p className="text-xs text-sigam-muted mt-1">
                   {summary.destino.coordenadas
                     ? `${summary.destino.coordenadas.lat.toFixed(5)}, ${summary.destino.coordenadas.lng.toFixed(5)}`
