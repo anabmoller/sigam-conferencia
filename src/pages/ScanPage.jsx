@@ -39,106 +39,119 @@ export default function ScanPage() {
   const saveGuia = async () => {
     if (!parsed) return;
     setSaving(true);
+    setParseError(null);
 
-    const { origen, destino } = parsed;
+    try {
+      const { origen, destino } = parsed;
 
-    const upserts = [];
-    if (origen.establecimiento_codigo) {
-      upserts.push(
-        supabase.from('establecimientos').upsert(
-          {
-            codigo: origen.establecimiento_codigo,
-            lat: origen.coordenadas?.lat ?? null,
-            lng: origen.coordenadas?.lng ?? null,
-            coordenadas_dms: origen.coordenadas_dms,
-          },
-          { onConflict: 'codigo' }
-        )
-      );
-    }
-    if (destino.establecimiento_codigo) {
-      upserts.push(
-        supabase.from('establecimientos').upsert(
-          {
-            codigo: destino.establecimiento_codigo,
-            lat: destino.coordenadas?.lat ?? null,
-            lng: destino.coordenadas?.lng ?? null,
-            coordenadas_dms: destino.coordenadas_dms,
-          },
-          { onConflict: 'codigo' }
-        )
-      );
-    }
-    if (origen.proprietario_codigo) {
-      upserts.push(
-        supabase.from('proprietarios').upsert(
-          { codigo: origen.proprietario_codigo },
-          { onConflict: 'codigo', ignoreDuplicates: true }
-        )
-      );
-    }
-    if (destino.proprietario_codigo) {
-      upserts.push(
-        supabase.from('proprietarios').upsert(
-          { codigo: destino.proprietario_codigo },
-          { onConflict: 'codigo', ignoreDuplicates: true }
-        )
-      );
-    }
+      const upserts = [];
+      if (origen.establecimiento_codigo) {
+        upserts.push(
+          supabase.from('establecimientos').upsert(
+            {
+              codigo: origen.establecimiento_codigo,
+              lat: origen.coordenadas?.lat ?? null,
+              lng: origen.coordenadas?.lng ?? null,
+              coordenadas_dms: origen.coordenadas_dms,
+            },
+            { onConflict: 'codigo' }
+          )
+        );
+      }
+      if (destino.establecimiento_codigo) {
+        upserts.push(
+          supabase.from('establecimientos').upsert(
+            {
+              codigo: destino.establecimiento_codigo,
+              lat: destino.coordenadas?.lat ?? null,
+              lng: destino.coordenadas?.lng ?? null,
+              coordenadas_dms: destino.coordenadas_dms,
+            },
+            { onConflict: 'codigo' }
+          )
+        );
+      }
+      if (origen.proprietario_codigo) {
+        upserts.push(
+          supabase.from('proprietarios').upsert(
+            { codigo: origen.proprietario_codigo },
+            { onConflict: 'codigo', ignoreDuplicates: true }
+          )
+        );
+      }
+      if (destino.proprietario_codigo) {
+        upserts.push(
+          supabase.from('proprietarios').upsert(
+            { codigo: destino.proprietario_codigo },
+            { onConflict: 'codigo', ignoreDuplicates: true }
+          )
+        );
+      }
 
-    const dimResults = await Promise.all(upserts);
-    const dimErr = dimResults.find((r) => r.error);
-    if (dimErr) {
-      setParseError(dimErr.error.message);
-      setSaving(false);
-      return;
-    }
+      const dimResults = await Promise.all(upserts);
+      const dimErr = dimResults.find((r) => r.error);
+      if (dimErr) {
+        throw new Error(dimErr.error.message);
+      }
 
-    if (origen.establecimiento_codigo && origen.proprietario_codigo) {
-      await supabase.from('establecimiento_proprietarios').upsert(
+      if (origen.establecimiento_codigo && origen.proprietario_codigo) {
+        const { error: linkOrigenErr } = await supabase
+          .from('establecimiento_proprietarios')
+          .upsert(
+            {
+              establecimiento_codigo: origen.establecimiento_codigo,
+              proprietario_codigo: origen.proprietario_codigo,
+            },
+            { onConflict: 'establecimiento_codigo,proprietario_codigo', ignoreDuplicates: true }
+          );
+        if (linkOrigenErr) {
+          throw new Error(`Error al guardar propietario del origen: ${linkOrigenErr.message}`);
+        }
+      }
+      if (destino.establecimiento_codigo && destino.proprietario_codigo) {
+        const { error: linkDestinoErr } = await supabase
+          .from('establecimiento_proprietarios')
+          .upsert(
+            {
+              establecimiento_codigo: destino.establecimiento_codigo,
+              proprietario_codigo: destino.proprietario_codigo,
+            },
+            { onConflict: 'establecimiento_codigo,proprietario_codigo', ignoreDuplicates: true }
+          );
+        if (linkDestinoErr) {
+          throw new Error(`Error al guardar propietario del destino: ${linkDestinoErr.message}`);
+        }
+      }
+
+      const { error: guiaErr } = await supabase.from('guias').upsert(
         {
-          establecimiento_codigo: origen.establecimiento_codigo,
-          proprietario_codigo: origen.proprietario_codigo,
+          guia_nro: parsed.guia_nro,
+          cota: parsed.cota,
+          fecha_emision: parsed.fecha_emision,
+          proprietario_origen_codigo: origen.proprietario_codigo,
+          establecimiento_origen_codigo: origen.establecimiento_codigo,
+          proprietario_destino_codigo: destino.proprietario_codigo,
+          establecimiento_destino_codigo: destino.establecimiento_codigo,
+          finalidad: parsed.finalidad,
+          composicion: parsed.composicion,
+          cantidad_total: parsed.cantidad_total,
+          qr_payload_bruto: parsed.raw,
+          escaneada_lat: coords?.lat ?? null,
+          escaneada_lng: coords?.lng ?? null,
         },
-        { onConflict: 'establecimiento_codigo,proprietario_codigo', ignoreDuplicates: true }
+        { onConflict: 'guia_nro' }
       );
-    }
-    if (destino.establecimiento_codigo && destino.proprietario_codigo) {
-      await supabase.from('establecimiento_proprietarios').upsert(
-        {
-          establecimiento_codigo: destino.establecimiento_codigo,
-          proprietario_codigo: destino.proprietario_codigo,
-        },
-        { onConflict: 'establecimiento_codigo,proprietario_codigo', ignoreDuplicates: true }
-      );
-    }
 
-    const { error: guiaErr } = await supabase.from('guias').upsert(
-      {
-        guia_nro: parsed.guia_nro,
-        cota: parsed.cota,
-        fecha_emision: parsed.fecha_emision,
-        proprietario_origen_codigo: origen.proprietario_codigo,
-        establecimiento_origen_codigo: origen.establecimiento_codigo,
-        proprietario_destino_codigo: destino.proprietario_codigo,
-        establecimiento_destino_codigo: destino.establecimiento_codigo,
-        finalidad: parsed.finalidad,
-        composicion: parsed.composicion,
-        cantidad_total: parsed.cantidad_total,
-        qr_payload_bruto: parsed.raw,
-        escaneada_lat: coords?.lat ?? null,
-        escaneada_lng: coords?.lng ?? null,
-      },
-      { onConflict: 'guia_nro' }
-    );
+      if (guiaErr) {
+        throw new Error(guiaErr.message);
+      }
 
-    if (guiaErr) {
-      setParseError(guiaErr.message);
+      navigate(`/guias/${parsed.guia_nro}/abrir`);
+    } catch (err) {
+      setParseError(err?.message || 'Error al guardar la guía');
+    } finally {
       setSaving(false);
-      return;
     }
-
-    navigate(`/guias/${parsed.guia_nro}/abrir`);
   };
 
   return (
@@ -251,7 +264,7 @@ export default function ScanPage() {
               </div>
             </div>
             <div className="text-xs text-sigam-muted">
-              GPS actual: {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : geoError ?? 'capturando…'}
+              GPS actual: {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : geoError?.message ?? 'capturando…'}
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" onClick={() => setParsed(null)}>
